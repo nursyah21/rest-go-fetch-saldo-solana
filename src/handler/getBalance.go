@@ -45,7 +45,7 @@ func GetBalance(c *fiber.Ctx) error {
 
 	type walletBalance struct {
 		Wallet  string `json:"wallet"`
-		Balance int    `json:"balance,omitempty"`
+		Balance int    `json:"balance"`
 		Error   string `json:"error,omitempty"`
 	}
 	results := make([]walletBalance, len(req.Wallets))
