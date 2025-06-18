@@ -29,7 +29,15 @@ func AddApiKey(c *fiber.Ctx) error {
 		})
 	}
 
-	if models.ApiExist(req.ApiKey) {
+	if exists := helper.GetAPIKeyCache(req.ApiKey); exists {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Api key already exists",
+		})
+	}
+
+	if exists := models.ApiExist(req.ApiKey); exists {
+		helper.SetAPIKeyCache(req.ApiKey, exists)
+
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Api key already exists",
 		})
