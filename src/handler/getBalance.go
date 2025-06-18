@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fetch-saldo/src/helper"
+	"fetch-saldo/src/models"
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,15 +16,16 @@ func GetBalance(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key"})
 	}
 
-	// var api models.API
-	// coll := mgm.Coll(&api)
-	// err := coll.FindOne(c.Context(), bson.M{"api": apiKey}).Decode(&api)
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return c.Status(403).JSON(fiber.Map{
-	// 		"error": "Invalid or unauthorized API key",
-	// 	})
-	// }
+	if !helper.GetAPIKeyCache(apiKey) {
+		exists := models.ApiExist(apiKey)
+		helper.SetAPIKeyCache(apiKey, exists)
+
+		if !exists {
+			return c.Status(403).JSON(fiber.Map{
+				"error": "Invalid or unauthorized API key",
+			})
+		}
+	}
 
 	type request struct {
 		Wallets []string `json:"wallets"`
