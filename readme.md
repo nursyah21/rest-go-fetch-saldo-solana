@@ -18,5 +18,5 @@ go build -ldflags="-s -w"  -o main.exe ./src
 
 ```sh
 ## get solana
-curl -X POST localhost:5000/api/get-balances -H "Content-Type: application/json" -d '{"wallets":[""]}'
+curl -X POST localhost:5000/api/get-balances -H "Content-Type: application/json" -d '{"wallets":["2k5AXX4guW9XwRQ1AKCpAuUqgWDpQpwFfpVFh3hnm2Ha","2k5AXX4guW9XwRQ1AKCpAuUqgWDpQpwFfpVFh3hnm2Ha"]}'
 ```
