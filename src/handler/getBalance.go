@@ -1,19 +1,22 @@
 package handler
 
 import (
+	"encoding/json"
 	"fetch-saldo/src/helper"
 	"fetch-saldo/src/models"
+	"io"
+	"net/http"
 	"sync"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/panjf2000/ants/v2"
 	"resty.dev/v3"
 )
 
-func GetBalance(c *fiber.Ctx) error {
-	apiKey := c.Get("X-API-Key")
+func GetBalance(w http.ResponseWriter, r *http.Request) {
+	apiKey := r.Header.Get("X-API-Key")
 	if apiKey == "" {
-		return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key"})
+		http.Error(w, `{"error": "Invalid or Missing X-API-Key"}`, http.StatusUnauthorized)
+		return
 	}
 
 	if !helper.GetAPIKeyCache(apiKey) {
@@ -21,26 +24,30 @@ func GetBalance(c *fiber.Ctx) error {
 		helper.SetAPIKeyCache(apiKey, exists)
 
 		if !exists {
-			return c.Status(403).JSON(fiber.Map{
-				"error": "Invalid or unauthorized API key",
-			})
+			http.Error(w, `{"error": "Invalid or unauthorized API key"}`, http.StatusUnauthorized)
+			return
 		}
 	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, `{"error": "Failed to read request body"}`, http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
 
 	type request struct {
 		Wallets []string `json:"wallets"`
 	}
 	var req request
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, `{"error": "Invalid request body"}`, http.StatusBadRequest)
+		return
 	}
 
 	if len(req.Wallets) == 0 {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Missing required fields: wallets: []",
-		})
+		http.Error(w, `{"error": "Missing required fields: wallets: []"}`, http.StatusBadRequest)
+		return
 	}
 
 	type walletBalance struct {
@@ -127,5 +134,5 @@ func GetBalance(c *fiber.Ctx) error {
 	}
 
 	wg.Wait()
-	return c.JSON(results)
+	json.NewEncoder(w).Encode(results)
 }

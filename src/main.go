@@ -3,10 +3,10 @@ package main
 import (
 	"fetch-saldo/src/handler"
 	"fetch-saldo/src/helper"
+	"fmt"
+	"log"
+	"net/http"
 	"time"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
 func init() {
@@ -15,20 +15,30 @@ func init() {
 }
 
 func main() {
-	app := fiber.New()
+	rateLimiter := helper.NewRateLimiter(1, time.Minute)
 
-	app.Use(limiter.New(limiter.Config{
-		Max:        10,
-		Expiration: 1 * time.Minute,
-		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Rate limit exceeded",
-			})
-		},
-	}))
+	mux := http.NewServeMux()
 
-	app.Post("/api/add-api-key", handler.AddApiKey)
-	app.Post("/api/get-balances", handler.GetBalance)
+	type route struct {
+		Method  string
+		Path    string
+		Handler http.HandlerFunc
+	}
+	routes := []route{
+		{http.MethodPost, "/api/add-api-key", handler.AddApiKey},
+		{http.MethodPost, "/api/get-balances", handler.GetBalance},
+	}
 
-	app.Listen(":5000")
+	for _, route := range routes {
+		mux.HandleFunc(route.Path, func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != route.Method {
+				http.Error(w, `{"error": "method not allowed"}`, http.StatusMethodNotAllowed)
+				return
+			}
+			helper.WithRateLimit(rateLimiter, route.Handler)(w, r)
+		})
+	}
+
+	fmt.Println("Server started at http://localhost:5000")
+	log.Fatal(http.ListenAndServe(":5000", mux))
 }
