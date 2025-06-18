@@ -1,33 +1,29 @@
 package main
 
 import (
-	"log"
-	"os"
+	"fetch-saldo/src/config"
+	"fetch-saldo/src/handler"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/joho/godotenv"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
-
-var (
-	RPC_HELIUS string
-)
-
-func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Warning: .env file not found, using system env vars")
-	}
-
-	RPC_HELIUS = os.Getenv("RPC_HELIUS")
-	if RPC_HELIUS == "" {
-		log.Fatal("RPC_HELIUS is not set in environment or .env file")
-	}
-}
 
 func main() {
+	config.NewConfig()
 	app := fiber.New()
 
-	app.Post("/api/get-balances", GetBalance)
+	app.Use(limiter.New(limiter.Config{
+		Max:      10,
+		Duration: 1 * time.Minute,
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Rate limit exceeded",
+			})
+		},
+	}))
+
+	app.Post("/api/get-balances", handler.GetBalance)
 
 	app.Listen(":5000")
 }
