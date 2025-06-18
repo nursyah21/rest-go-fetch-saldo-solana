@@ -1,4 +1,4 @@
-# golang rest fetch saldon solana
+# golang rest fetch saldo solana
 
 ## clone and install
 ```sh
