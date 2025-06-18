@@ -1,16 +1,21 @@
 package main
 
 import (
-	"fetch-saldo/src/config"
 	"fetch-saldo/src/handler"
+	"fetch-saldo/src/helper"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
+func init() {
+	helper.LoadEnv()
+	helper.InitCache()
+	helper.ConnectDB()
+}
+
 func main() {
-	config.NewConfig()
 	app := fiber.New()
 
 	app.Use(limiter.New(limiter.Config{

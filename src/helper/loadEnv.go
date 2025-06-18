@@ -1,12 +1,10 @@
-package config
+package helper
 
 import (
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/kamva/mgm/v3"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
@@ -14,7 +12,7 @@ var (
 	MONGO_URI string
 )
 
-func NewConfig() {
+func LoadEnv() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Warning: .env file not found, using system env vars")
@@ -29,11 +27,4 @@ func NewConfig() {
 	if MONGO_URI == "" {
 		log.Fatal("MONGO_URI is not set in environment or .env file")
 	}
-
-	clientOpts := options.Client().ApplyURI(MONGO_URI)
-	err = mgm.SetDefaultConfig(nil, "fetch_saldo_solana", clientOpts)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
 }

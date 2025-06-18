@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fetch-saldo/src/config"
+	"fetch-saldo/src/helper"
 	"sync"
 
 	"github.com/go-resty/resty/v2"
@@ -9,32 +9,32 @@ import (
 	"github.com/panjf2000/ants/v2"
 )
 
-type BalanceRequest struct {
+type balanceRequest struct {
 	Wallets []string `json:"wallets"`
 }
 
-type RpcRequest struct {
+type rpcRequest struct {
 	Jsonrpc string `json:"jsonrpc"`
 	ID      int    `json:"id"`
 	Method  string `json:"method"`
 	Params  []any  `json:"params"`
 }
 
-type RpcBalanceResult struct {
+type rpcBalanceResult struct {
 	Context struct {
 		Slot int `json:"slot"`
 	} `json:"context"`
 	Value int `json:"value"`
 }
 
-type RpcResponse struct {
+type rpcResponse struct {
 	Jsonrpc string           `json:"jsonrpc"`
 	ID      int              `json:"id"`
-	Result  RpcBalanceResult `json:"result"`
+	Result  rpcBalanceResult `json:"result"`
 	Error   any              `json:"error,omitempty"`
 }
 
-type WalletBalance struct {
+type walletBalance struct {
 	Wallet  string `json:"wallet"`
 	Balance int    `json:"balance,omitempty"`
 	Error   string `json:"error,omitempty"`
@@ -46,7 +46,7 @@ func GetBalance(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key"})
 	}
 
-	var req BalanceRequest
+	var req balanceRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "invalid request body",
@@ -59,7 +59,7 @@ func GetBalance(c *fiber.Ctx) error {
 		})
 	}
 
-	results := make([]WalletBalance, len(req.Wallets))
+	results := make([]walletBalance, len(req.Wallets))
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 
@@ -73,36 +73,49 @@ func GetBalance(c *fiber.Ctx) error {
 		_ = pool.Submit(func() {
 			defer wg.Done()
 
-			payload := RpcRequest{
+			if cachedBalance, ok := helper.GetFromCache(wallet); ok {
+				mutex.Lock()
+				results[i] = walletBalance{
+					Wallet:  wallet,
+					Balance: cachedBalance,
+				}
+				mutex.Unlock()
+				return
+			}
+
+			payload := rpcRequest{
 				Jsonrpc: "2.0",
 				ID:      1,
 				Method:  "getBalance",
 				Params:  []any{req.Wallets[0]},
 			}
 
-			var res RpcResponse
+			var res rpcResponse
 
 			client := resty.New()
 
 			_, err := client.R().
 				SetBody(payload).
 				SetResult(&res).
-				Post(config.RPC_URI + apiKey)
+				Post(helper.RPC_URI + apiKey)
 
 			mutex.Lock()
 			defer mutex.Unlock()
 
 			if err != nil {
-				results[i] = WalletBalance{
+				results[i] = walletBalance{
 					Wallet: wallet,
 					Error:  err.Error(),
 				}
 				return
 			}
 
-			results[i] = WalletBalance{
+			balance := res.Result.Value
+			helper.SetToCache(wallet, balance)
+
+			results[i] = walletBalance{
 				Wallet:  wallet,
-				Balance: res.Result.Value,
+				Balance: balance,
 			}
 		})
 	}
