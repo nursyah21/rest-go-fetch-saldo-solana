@@ -6,7 +6,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/panjf2000/ants/v2 v2.11.3
 	go.mongodb.org/mongo-driver v1.8.3
-	resty.dev/v3 v3.0.0-beta.3
 )
 
 require (
@@ -23,6 +22,5 @@ require (
 
 require (
 	github.com/klauspost/compress v1.17.9 // indirect
-	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 )

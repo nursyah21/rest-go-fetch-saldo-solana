@@ -1,15 +1,17 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fetch-saldo/src/helper"
 	"fetch-saldo/src/models"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 
 	"github.com/panjf2000/ants/v2"
-	"resty.dev/v3"
 )
 
 func GetBalance(w http.ResponseWriter, r *http.Request) {
@@ -69,13 +71,14 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 		_ = pool.Submit(func() {
 			defer wg.Done()
 
+			mutex.Lock()
+			defer mutex.Unlock()
+
 			if cachedBalance, ok := helper.GetCacheWallet(wallet); ok {
-				mutex.Lock()
 				results[i] = walletBalance{
 					Wallet:  wallet,
 					Balance: cachedBalance,
 				}
-				mutex.Unlock()
 				return
 			}
 
@@ -92,6 +95,41 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 				Params:  []any{wallet},
 			}
 
+			bodyReq, _ := json.Marshal(payload)
+			url := helper.RPC_URI + apiKey
+
+			req, err := http.NewRequestWithContext(r.Context(), "POST", url, bytes.NewBuffer(bodyReq))
+			if err != nil {
+				log.Println("Failed to create request:", err)
+				results[i] = walletBalance{
+					Wallet: wallet,
+					Error:  err.Error(),
+				}
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Println("HTTP error:", err)
+				results[i] = walletBalance{
+					Wallet: wallet,
+					Error:  err.Error(),
+				}
+				return
+			}
+			defer resp.Body.Close()
+
+			bodyRes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				results[i] = walletBalance{
+					Wallet: wallet,
+					Error:  err.Error(),
+				}
+				return
+			}
+
 			type responseGetBalance struct {
 				Jsonrpc string `json:"jsonrpc"`
 				ID      int    `json:"id"`
@@ -104,21 +142,18 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 				Error any `json:"error,omitempty"`
 			}
 			var res responseGetBalance
-
-			client := resty.New()
-
-			_, err := client.R().
-				SetBody(payload).
-				SetResult(&res).
-				Post(helper.RPC_URI + apiKey)
-
-			mutex.Lock()
-			defer mutex.Unlock()
-
-			if err != nil {
+			if err := json.Unmarshal(bodyRes, &res); err != nil {
 				results[i] = walletBalance{
 					Wallet: wallet,
 					Error:  err.Error(),
+				}
+				return
+			}
+
+			if res.Error != nil {
+				results[i] = walletBalance{
+					Wallet: wallet,
+					Error:  fmt.Sprintf("%v", res.Error),
 				}
 				return
 			}
