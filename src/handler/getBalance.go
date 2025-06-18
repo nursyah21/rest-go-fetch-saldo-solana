@@ -4,41 +4,10 @@ import (
 	"fetch-saldo/src/helper"
 	"sync"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/panjf2000/ants/v2"
+	"resty.dev/v3"
 )
-
-type balanceRequest struct {
-	Wallets []string `json:"wallets"`
-}
-
-type rpcRequest struct {
-	Jsonrpc string `json:"jsonrpc"`
-	ID      int    `json:"id"`
-	Method  string `json:"method"`
-	Params  []any  `json:"params"`
-}
-
-type rpcBalanceResult struct {
-	Context struct {
-		Slot int `json:"slot"`
-	} `json:"context"`
-	Value int `json:"value"`
-}
-
-type rpcResponse struct {
-	Jsonrpc string           `json:"jsonrpc"`
-	ID      int              `json:"id"`
-	Result  rpcBalanceResult `json:"result"`
-	Error   any              `json:"error,omitempty"`
-}
-
-type walletBalance struct {
-	Wallet  string `json:"wallet"`
-	Balance int    `json:"balance,omitempty"`
-	Error   string `json:"error,omitempty"`
-}
 
 func GetBalance(c *fiber.Ctx) error {
 	apiKey := c.Get("X-API-Key")
@@ -46,7 +15,20 @@ func GetBalance(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key"})
 	}
 
-	var req balanceRequest
+	// var api models.API
+	// coll := mgm.Coll(&api)
+	// err := coll.FindOne(c.Context(), bson.M{"api": apiKey}).Decode(&api)
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return c.Status(403).JSON(fiber.Map{
+	// 		"error": "Invalid or unauthorized API key",
+	// 	})
+	// }
+
+	type request struct {
+		Wallets []string `json:"wallets"`
+	}
+	var req request
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "invalid request body",
@@ -59,6 +41,11 @@ func GetBalance(c *fiber.Ctx) error {
 		})
 	}
 
+	type walletBalance struct {
+		Wallet  string `json:"wallet"`
+		Balance int    `json:"balance,omitempty"`
+		Error   string `json:"error,omitempty"`
+	}
 	results := make([]walletBalance, len(req.Wallets))
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
@@ -73,7 +60,7 @@ func GetBalance(c *fiber.Ctx) error {
 		_ = pool.Submit(func() {
 			defer wg.Done()
 
-			if cachedBalance, ok := helper.GetFromCache(wallet); ok {
+			if cachedBalance, ok := helper.GetCacheWallet(wallet); ok {
 				mutex.Lock()
 				results[i] = walletBalance{
 					Wallet:  wallet,
@@ -83,6 +70,12 @@ func GetBalance(c *fiber.Ctx) error {
 				return
 			}
 
+			type rpcRequest struct {
+				Jsonrpc string `json:"jsonrpc"`
+				ID      int    `json:"id"`
+				Method  string `json:"method"`
+				Params  []any  `json:"params"`
+			}
 			payload := rpcRequest{
 				Jsonrpc: "2.0",
 				ID:      1,
@@ -90,7 +83,18 @@ func GetBalance(c *fiber.Ctx) error {
 				Params:  []any{req.Wallets[0]},
 			}
 
-			var res rpcResponse
+			type responseGetBalance struct {
+				Jsonrpc string `json:"jsonrpc"`
+				ID      int    `json:"id"`
+				Result  struct {
+					Context struct {
+						Slot int `json:"slot"`
+					} `json:"context"`
+					Value int `json:"value"`
+				} `json:"result"`
+				Error any `json:"error,omitempty"`
+			}
+			var res responseGetBalance
 
 			client := resty.New()
 
@@ -111,7 +115,7 @@ func GetBalance(c *fiber.Ctx) error {
 			}
 
 			balance := res.Result.Value
-			helper.SetToCache(wallet, balance)
+			helper.SetCacheWallet(wallet, balance)
 
 			results[i] = walletBalance{
 				Wallet:  wallet,

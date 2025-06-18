@@ -21,7 +21,7 @@ func InitCache() {
 	})
 }
 
-func GetFromCache(wallet string) (int, bool) {
+func GetCacheWallet(wallet string) (int, bool) {
 	val, ok := walletCache.Load(wallet)
 	if !ok {
 		return 0, false
@@ -35,7 +35,7 @@ func GetFromCache(wallet string) (int, bool) {
 	return entry.Value, true
 }
 
-func SetToCache(wallet string, balance int) {
+func SetCacheWallet(wallet string, balance int) {
 	entry := cacheEntry{
 		Value:      balance,
 		Expiration: time.Now().Add(10 * time.Second).Unix(),

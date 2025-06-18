@@ -1,16 +1,25 @@
 package helper
 
 import (
+	"context"
 	"log"
+	"time"
 
-	"github.com/kamva/mgm/v3"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var MongoClient *mongo.Client
+
 func ConnectDB() {
-	clientOpts := options.Client().ApplyURI(MONGO_URI)
-	err := mgm.SetDefaultConfig(nil, "fetch_saldo_solana", clientOpts)
+	clientOptions := options.Client().ApplyURI(MONGO_URI)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB: %v", err)
+		log.Fatal(err.Error())
 	}
+
+	MongoClient = client
 }

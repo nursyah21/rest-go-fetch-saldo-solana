@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	RPC_URI   string
-	MONGO_URI string
+	RPC_URI    string
+	MONGO_URI  string
+	SECRET_KEY string
 )
 
 func LoadEnv() {
@@ -26,5 +27,10 @@ func LoadEnv() {
 	MONGO_URI = os.Getenv("MONGO_URI")
 	if MONGO_URI == "" {
 		log.Fatal("MONGO_URI is not set in environment or .env file")
+	}
+
+	SECRET_KEY = os.Getenv("SECRET_KEY")
+	if SECRET_KEY == "" {
+		log.Fatal("SECRET_KEY is not set in environment or .env file")
 	}
 }

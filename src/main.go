@@ -28,6 +28,7 @@ func main() {
 		},
 	}))
 
+	app.Post("/api/add-api-key", handler.AddApiKey)
 	app.Post("/api/get-balances", handler.GetBalance)
 
 	app.Listen(":5000")
