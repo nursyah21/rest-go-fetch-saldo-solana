@@ -82,7 +82,7 @@ func GetBalance(c *fiber.Ctx) error {
 				Jsonrpc: "2.0",
 				ID:      1,
 				Method:  "getBalance",
-				Params:  []any{req.Wallets[0]},
+				Params:  []any{wallet},
 			}
 
 			type responseGetBalance struct {

@@ -12,7 +12,7 @@ import (
 type API struct {
 	ID        string             `json:"id,omitempty" bson:"_id,omitempty"`
 	Api       string             `json:"api" bson:"api"`
-	CreatedAt primitive.DateTime `json:"created_at"`
+	CreatedAt primitive.DateTime `json:"created_at" bson:"created_at"`
 }
 
 func CreateAPI(apiKey string) error {
