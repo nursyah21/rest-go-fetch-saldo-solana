@@ -16,8 +16,9 @@ type apiCacheEntry struct {
 }
 
 var (
-	walletCache sync.Map
-	apiCache    = make(map[string]apiCacheEntry)
+	walletCache        sync.Map
+	apiCache           = make(map[string]apiCacheEntry)
+	durationExpiration = time.Duration(60) * time.Second
 )
 
 func GetCacheWallet(wallet string) (int, bool) {
@@ -37,7 +38,7 @@ func GetCacheWallet(wallet string) (int, bool) {
 func SetCacheWallet(wallet string, balance int) {
 	entry := walletCacheEntry{
 		Value:      balance,
-		Expiration: time.Now().Add(10 * time.Second).Unix(),
+		Expiration: time.Now().Add(durationExpiration).Unix(),
 	}
 	walletCache.Store(wallet, entry)
 }
@@ -50,6 +51,6 @@ func GetAPIKeyCache(apiKey string) bool {
 func SetAPIKeyCache(apiKey string, valid bool) {
 	apiCache[apiKey] = apiCacheEntry{
 		Valid:      valid,
-		Expiration: time.Now().Add(10 * time.Second).Unix(),
+		Expiration: time.Now().Add(durationExpiration).Unix(),
 	}
 }
