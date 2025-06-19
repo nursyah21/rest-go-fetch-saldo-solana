@@ -1,37 +1,37 @@
 #!/bin/bash
 
 TARGET="src"
-COMMAND="go build -o ./tmp/main.exe ./src && ./main.exe"
+BUILD_CMD='CGO_ENABLED=0 go build -ldflags "-s -w" -o ./tmp/main -o ./tmp/main ./src'
+RUN_CMD="./tmp/main"
 POLLING_INTERVAL=1
-
 PID=""
 
+mkdir -p ./tmp
+
 restart_command() {
-    if [ ! -z "$PID" ]; then
-        kill $PID 2>/dev/null
-    fi
-    eval "$COMMAND" &
-    PID=$!
+  if [ -n "$PID" ]; then
+    kill $PID 2>/dev/null
+  fi
+
+  echo "please wait..."
+  eval "$BUILD_CMD"
+
+  bash -c "$RUN_CMD" &
+  PID=$!
 }
 
-get_modified_time() {
-    if [ -f "$1" ]; then
-        stat -c %Y "$1"
-    elif [ -d "$1" ]; then
-        find "$1" -type f -exec stat -c %Y {} + | sort -n | tail -1
-    else
-        echo 0
-    fi
+create_hash() {
+  find "$TARGET" -type f -name "*.go" -exec md5sum {} + 2>/dev/null | awk '{print $1}' | sort | md5sum | awk '{print $1}'
 }
 
-last_mod=$(get_modified_time "$TARGET")
+last_hash=$(create_hash)
 restart_command
 
 while true; do
-    sleep $POLLING_INTERVAL
-    current_mod=$(get_modified_time "$TARGET")
-    if [ "$current_mod" != "$last_mod" ]; then
-        restart_command
-        last_mod=$current_mod
-    fi
+  sleep $POLLING_INTERVAL
+  current_hash=$(create_hash)
+  if [ "$current_hash" != "$last_hash" ]; then
+    restart_command
+    last_hash=$current_hash
+  fi
 done

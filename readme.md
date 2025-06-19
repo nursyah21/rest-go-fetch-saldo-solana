@@ -20,19 +20,8 @@ cp .env.example .env
 ## how to run
 
 ```sh
-## linux
-sh watch.sh
-```
-
-```sh
-## windows
-watch.bat
-```
-
-## how to build
-
-```sh
-go build -ldflags="-s -w"  -o main.exe ./src
+## for windows you can use git bash to run this
+./watch.sh
 ```
 
 ## testing
