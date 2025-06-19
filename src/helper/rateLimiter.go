@@ -2,6 +2,7 @@ package helper
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -48,7 +49,8 @@ func (rl *RateLimiter) Allow(ip string) bool {
 
 func WithRateLimit(rl *RateLimiter, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+
 		if !rl.Allow(ip) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests)

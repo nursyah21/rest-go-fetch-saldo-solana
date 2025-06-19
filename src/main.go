@@ -15,7 +15,7 @@ func init() {
 }
 
 func main() {
-	rateLimiter := helper.NewRateLimiter(1, 1*time.Second)
+	rateLimiter := helper.NewRateLimiter(10, 10*time.Second)
 
 	mux := http.NewServeMux()
 
