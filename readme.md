@@ -1,6 +1,6 @@
 # golang rest fetch saldo solana
 
-## clone and install
+## prepare
 ```sh
 ## clone from github
 git clone --depth 1 https://github.com/nursyah21/rest-go-fetch-saldo-solana
@@ -15,6 +15,11 @@ go mod tidy
 ```sh
 ## after create .env you need to set environment in .env
 cp .env.example .env
+```
+
+```sh
+## optional, if you need local mongo
+docker compose up -d
 ```
 
 ## how to run
