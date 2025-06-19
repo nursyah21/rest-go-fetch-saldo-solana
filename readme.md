@@ -19,10 +19,14 @@ cp .env.example .env
 
 ## how to run
 
-you need to install air golang
+```sh
+## linux
+sh watch.sh
+```
 
 ```sh
-air
+## windows
+watch.bat
 ```
 
 ## how to build
