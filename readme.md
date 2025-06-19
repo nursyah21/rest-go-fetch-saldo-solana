@@ -31,4 +31,6 @@ docker compose up -d
 
 ## testing
 
-you can use httpie, and import `httpie-collection-api.json`
+```sh
+./rest.sh
+```
