@@ -26,11 +26,11 @@ docker compose up -d
 
 ```sh
 ## for windows you can use git bash to run this
-./watch.sh
+sh watch.sh
 ```
 
 ## testing
 
 ```sh
-./rest.sh
+sh rest.sh
 ```
